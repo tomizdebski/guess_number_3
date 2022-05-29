@@ -10,43 +10,92 @@ Informacje o aktualnych zmiennych min i max przechowuj w ukrytych polach formula
 Uwaga – nie jest to rozwiązanie bezpieczne, bo użytkownik może ręcznie zmienić tego htmla, np. przy pomocy Firebuga.
 W tej sytuacji jednak zupełnie wystarczające. Najwyżej zepsuje sobie zabawę ;)
 """
-from random import randint, shuffle, sample
+
+
 from flask import Flask, request
-from datetime import datetime
+
 
 app = Flask(__name__)
 
-liczba_do_zgadniecia = randint(1,100)
+
+HTML_START = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Guess The Number</title>
+</head>
+<body>
+<h1>Imagine number between 0 and 1000</h1>
+<form action="" method="POST">
+    <input type="hidden" name="min" value="{}"></input>
+    <input type="hidden" name="max" value="{}"></input>
+    <input type="submit" value="OK">
+</form>
+</body>
+</html>
+"""
 
 
-@app.route('/zgadywanka',methods=["GET", "POST"])
-def zgadywanka():
-    html = """
-    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
-    <h2>Formularz do witania się:</h2>
+HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Guess The Number</title>
+</head>
+<body>
+<h1>It is number {guess}</h1>
+<form action="" method="POST">
+    <input type="submit" name="user_answer" value="too big">
+    <input type="submit" name="user_answer" value="too small">
+    <input type="submit" name="user_answer" value="you won">
+    <input type="hidden" name="min" value="{min}">
+    <input type="hidden" name="max" value="{max}">
+    <input type="hidden" name="guess" value="{guess}">
+</form>
+</body>
+</html>
+"""
 
-    <form action="/zgadywanka" method="POST">
-        <label>Liczba:
-        <input type="number" name="liczba"/>
-        </label>
-        <button type="submit">Zgaduję</button>
-    </form>
-    """
-    if request.method == 'POST':
-        liczba_gracza = int(request.form['liczba'])
-        if liczba_gracza < liczba_do_zgadniecia:
-            return "<h2>Za mało</h2>"+html
-        elif liczba_gracza > liczba_do_zgadniecia:
-            return "<h2>Za dużo</h2>" + html
-        else:
-            return "Trafiłeś"
+
+HTML_WIN = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Guess The Number</title>
+</head>
+<body>
+<h1>Hurra! I guess! Your number is {guess}</h1>
+
+</body>
+</html>
+"""
+
+
+@app.route("/", methods=["GET", "POST"])
+def guess_the_number():
+    if request.method == "GET":
+        return HTML_START.format(0, 1000)
     else:
-        return html
+        min_number = int(request.form.get("min"))
+        max_number = int(request.form.get("max"))
+        user_answer = request.form.get("user_answer")
+        guess = int(request.form.get("guess", 500))
 
-if __name__ == "__main__":
-    app.run(debug=True)
+        if user_answer == "too big":
+            max_number = guess
+        elif user_answer == "too small":
+            min_number = guess
+        elif user_answer == "you won":
+            return HTML_WIN.format(guess=guess)
+
+        guess = (max_number - min_number) // 2 + min_number
+
+        return HTML.format(guess=guess, min=min_number, max=max_number)
 
 
-
+if __name__ == '__main__':
+    app.run()
 
 
